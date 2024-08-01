@@ -16,13 +16,24 @@ class App:
         self.root = root
         self.root.title("Image and Text Input with Matplotlib")
 
+        # Set window to portrait and full height of the screen, centered
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        window_width = int(screen_height * 0.75)  # Adjust width to maintain portrait aspect ratio
+        window_height = screen_height
+
+        x_position = (screen_width - window_width) // 2
+        y_position = 0
+
+        self.root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+
         # Create a label to display the text input value
         self.text_label = tk.Label(root, text="Text will be displayed here", font=("Helvetica", 16))
-        self.text_label.pack(pady=20)
+        self.text_label.pack(pady=5)
 
         # Create a frame for the image
         self.image_frame = tk.Frame(root)
-        self.image_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+        self.image_frame.pack(fill=tk.BOTH, expand=True)
 
         # Create a frame for the text input and buttons
         self.bottom_frame = tk.Frame(root)
@@ -33,51 +44,57 @@ class App:
         self.text_var.trace_add("write", self.update_label)
 
         # Create a text entry widget
-        self.text_entry = tk.Entry(self.bottom_frame, textvariable=self.text_var, width=50)
+        self.text_entry = tk.Entry(self.bottom_frame, textvariable=self.text_var, width=30)
         self.text_entry.pack(side=tk.LEFT, padx=(0, 10))
 
-        self.save_button = tk.Button(self.bottom_frame, text="Save", command=self.save_annotation)
+        self.save_button = tk.Button(self.bottom_frame, text="Save Label", command=self.save_annotation)
         self.save_button.pack(side=tk.LEFT)
-                
-        # Create a button to select an image
-        self.select_button = tk.Button(self.bottom_frame, text="Select Folder", command=self.select_folder)
-        self.select_button.pack(side=tk.LEFT)
-        
-        self.update_button = tk.Button(self.bottom_frame, text="Next Image", command=self.next_image)
+
+        self.update_button = tk.Button(self.bottom_frame, text="Next", command=self.next_image)
         self.update_button.pack(side=tk.LEFT)
+
+        # Create a button to select an image
+        self.select_button = tk.Button(self.bottom_frame, text="Select", command=self.select_folder)
+        self.select_button.pack(side=tk.LEFT)
+
 
         # Create a button to write out the json
         self.write_button = tk.Button(self.bottom_frame, text="Write JSON", command=self.write_json)
         self.write_button.pack(side=tk.LEFT)
 
-        # Placeholder for matplotlib figure 
+        # Placeholder for matplotlib figure
         self.fig = Figure(figsize=(5, 4), dpi=100)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.image_frame)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+# Add keybindings
+        self.root.bind('<Right>', lambda event: self.next_image())  # Bind right arrow key to next image
+        self.root.bind('<s>', lambda event: self.save_annotation())  # Bind 's' key to save selection
+        self.root.bind('<Return>', lambda event: self.write_json())  # Bind Enter key to save selection
 
         # data stuffs
         self.selection_coords = {}
         self.annotations = []
         self.image_annotations = []
-        
+
         self.current_label = ""
-        
+
         self.image_files = []
         self.current_index = 0
         self.image_folder = self.initial_dir
-        
+
         self.load_images()
 
-    def load_images(self): 
+    def load_images(self):
         if self.image_folder:
             self.image_files = os.listdir(self.image_folder)
             # print(self.image_files)
-            self.show_image(self.image_files[self.current_index])        
-     
+            self.show_image(self.image_files[self.current_index])
+
     def select_folder(self):
         self.image_folder = filedialog.askdirectory(initialdir=self.initial_dir)
         self.load_images()
- 
+
     def save_annotation(self):
         label_dict = { "coordinates":{}, "label": '' }
         coord_dict = {"x":int, "y":int, "width":int, "height":int}
@@ -92,9 +109,7 @@ class App:
         coord_dict['height'] = height
         label_dict['label'] = self.current_label
         label_dict['coordinates'] = coord_dict
-        self.annotations.append(label_dict)        
-        #image_dict = self.image_annotations[self.current_index]
-        #image_dict['annotations'] = self.annotations
+        self.annotations.append(label_dict)
 
     def is_image_file(self, filename):
         # Check file extension
@@ -109,19 +124,22 @@ class App:
     def show_image(self, file_name):
         if self.is_image_file(file_name):
             dir_file = self.image_folder + '/' + file_name
-            if 0 <= self.current_index < len(self.image_annotations): 
+            if 0 <= self.current_index < len(self.image_annotations):
                 self.annotations = self.image_annotations[self.current_index]["annotations"]
-            else: 
-                image_dict = {"image":'', "annotations":[]}
-                image_dict['image'] = file_name 
+            else:
+                image_dict = {"imagefilename":'', "annotations":[]}
+                image_dict['imagefilename'] = file_name
                 self.image_annotations.append(image_dict)
-            
+
             self.fig.clear()
             self.ax = self.fig.add_subplot(111)
             image = cv2.imread(dir_file)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             self.ax.imshow(image)
             self.ax.axis('off')
+            self.fig.tight_layout(pad=0)
+            #self.ax.set_aspect('auto')
+
             
             self.rectangle_selector = RectangleSelector(
                 self.ax, 
