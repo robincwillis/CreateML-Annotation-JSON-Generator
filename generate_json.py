@@ -11,8 +11,8 @@ from matplotlib.figure import Figure
 
 class App:
     def __init__(self, root):
-        self.initial_dir = 'dev' # Replace with your initial directory path
-        self.output_dir = 'output'
+        self.initial_dir = '../training/batch2' # Replace with your initial directory path
+        self.output_dir = '../output'
         self.root = root
         self.root.title("Image and Text Input with Matplotlib")
 
@@ -87,9 +87,14 @@ class App:
 
     def load_images(self):
         if self.image_folder:
-            self.image_files = os.listdir(self.image_folder)
-            # print(self.image_files)
-            self.show_image(self.image_files[self.current_index])
+            all_files = os.listdir(self.image_folder)
+            self.image_files = [file for file in all_files if self.is_image_file(file)]
+            if self.image_files:
+                self.show_image(self.image_files[self.current_index])
+            else :
+                print("No image files found in the folder.")
+
+                
 
     def select_folder(self):
         self.image_folder = filedialog.askdirectory(initialdir=self.initial_dir)
@@ -110,6 +115,7 @@ class App:
         label_dict['label'] = self.current_label
         label_dict['coordinates'] = coord_dict
         self.annotations.append(label_dict)
+        self.image_annotations[self.current_index]["annotations"] = self.annotations
 
     def is_image_file(self, filename):
         # Check file extension
@@ -118,7 +124,7 @@ class App:
 
     def update_label(self, *args):
         self.current_label = self.text_var.get()
-        #print(f"Label updated to: {self.current_label}")  # Debug statement
+        print(f"Label updated to: {self.current_label}")  # Debug statement
         self.text_label.config(text=f"Input: {self.current_label}")
 
     def show_image(self, file_name):
